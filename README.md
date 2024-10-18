@@ -1,9 +1,4 @@
-
-<p align="center">
-<img src="https://i.ibb.co.com/Wcs6PtL/aether-icon-fotor-2024101954549.jpg" width="200" height="200"/>
-</p>
-
-* # TUTORIAL 📌
+* # TUTORIAL DAN STEP BY STEP 📌
 
 
 * ## STEP 1
@@ -144,3 +139,7 @@ File Setting ``setting.js``
 <img src="https://telegra.ph/file/1cbc7e659b35a053bf25f.png" width="150" height="150">
 
 ``Halal Rest API``
+
+## Lisensi
+
+Proyek ini dilisensikan di bawah MIT License - lihat file [LICENSE](LICENSE) untuk detail.
