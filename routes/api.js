@@ -22,6 +22,9 @@ const isNumber = require('is-number');
 const User = require('../model/user');
 const dataweb = require('../model/DataWeb');
 const router = express.Router()
+const fetch = require('node-fetch')
+const FormData = require('form-data')
+const { aiChat, aiImage, fallbackResponse } = require('../lib/ai');
 
 //―――――――――――――――――――――――――――――――――――――――――― ┏  Function ┓ ―――――――――――――――――――――――――――――――――――――――――― \\
 
@@ -46,10 +49,7 @@ async function limitapikey(apikey) {
        await User.findOneAndUpdate({apikey: apikey},{$inc: { limitApikey: -1}},{upsert: true,new: true})
 }
 
-
-
 //―――――――――――――――――――――――――――――――――――――――――― ┏  Dowloader  ┓ ―――――――――――――――――――――――――――――――――――――――――― \\
-
 
 router.get('/api/dowloader/fbdown', cekKey, async (req, res, next) => {
 	var url = req.query.url
@@ -983,7 +983,7 @@ router.get('/api/search/sfilemobi', cekKey, async (req, res, next) => {
 })
 })
 
-//―――――――――――――――――――――――――――――――――――――――――― ┏  Random Gambar ┓ ―――――――――――――――――――――――――――――――――――――――――― \\
+//――――――――――――――――――――――――――――――――――――――――― ┏  Random Gambar ┓ ―――――――――――――――――――――――――――――――――――――――――― \\
 
 
 router.get('/api/randomgambar/couplepp', cekKey, async (req, res, next) => {
@@ -1553,7 +1553,7 @@ can.context.drawImage(bg, 320, 0, 709, 360)
     res.send(canvas.create.toBuffer())
 })
 
-//―――――――――――――――――――――――――――――――――――――――――― ┏  Link Short  ┓ ―――――――――――――――――――――――――――――――――――――――――― \\
+//――――――――――――――――――――――――――――――――――――――――― ┏  Link Short  ┓ ―――――――――――――――――――――――――――――――――――――――――― \\
 
 router.get('/api/linkshort/tinyurl', cekKey, async (req, res, next) => {
 	var link = req.query.link
@@ -1708,7 +1708,7 @@ router.get('/api/info/emoji', cekKey, async (req, res, next) => {
 })
 
 
-//―――――――――――――――――――――――――――――――――――――――――― ┏  Tools ┓ ―――――――――――――――――――――――――――――――――――――――――― \\
+//―――――――――――――――――――――――――――――――――――――――――― ┏  Tools ┓ ――――――――――――――――――――――――――――――――――――――――― \\
 
 router.get('/api/tools/ebase64', cekKey, async (req, res, next) => {
 	var text1 = req.query.text
@@ -1853,6 +1853,107 @@ router.get('/api/islamic/tafsirsurah', cekKey, async (req, res, next) => {
  res.json(loghandler.error)
 
 })
+})
+
+//―――――――――――――――――――――――――――――――――――――――――― ┏  AI API  ┓ ―――――――――――――――――――――――――――――――――――――――――― \\
+
+router.get('/api/ai/chat', cekKey, async (req, res, next) => {
+    var text = req.query.text
+    if (!text) return res.json({ status : false, creator : `${creator}`, message : "[!] masukan parameter text"})   
+    
+    try {
+        console.log("Received chat request:", text);
+        let response = await aiChat(text);
+        console.log("AI response:", response);
+        limitapikey(req.query.apikey)
+        res.json({
+            status: true,
+            creator: `${creator}`,
+            result: response
+        })
+    } catch (e) {
+        console.error("Unexpected error in /api/ai/chat:", e);
+        const fallbackResp = fallbackResponse(text);
+        res.json({
+            status: true,
+            creator: `${creator}`,
+            result: fallbackResp
+        });
+    }
+})
+
+router.get('/api/ai/image', cekKey, async (req, res, next) => {
+    var text = req.query.text
+    if (!text) return res.json({ status : false, creator : `${creator}`, message : "[!] masukan parameter text"})   
+    
+    try {
+        console.log("Received image request:", text);
+        let imageData = await aiImage(text);
+        console.log("Image data received:", imageData);
+        limitapikey(req.query.apikey)
+        res.json({
+            status: true,
+            creator: `${creator}`,
+            result: {
+                image_url: imageData.url,
+                description: imageData.description,
+                author: imageData.author,
+                author_url: imageData.author_url
+            }
+        })
+    } catch (e) {
+        console.error("Error in /api/ai/image:", e.message);
+        res.json({
+            status: false,
+            creator: `${creator}`,
+            message: "Terjadi kesalahan saat mencari gambar: " + e.message
+        });
+    }
+})
+
+router.post('/api/ai/image-edit', cekKey, async (req, res, next) => {
+    if (!req.files) return res.json({ status : false, creator : `${creator}`, message : "[!] masukan parameter image, mask, dan prompt"})   
+    
+    const { image, mask } = req.files;
+    const prompt = req.body.prompt;
+
+    if (!image || !mask || !prompt) return res.json({ status : false, creator : `${creator}`, message : "[!] masukan parameter image, mask, dan prompt"})   
+
+    try {
+        const form = new FormData();
+        form.append('image', image.data, image.name);
+        form.append('mask', mask.data, mask.name);
+        form.append('prompt', prompt);
+
+        const response = await fetch(`https://rest-api.aetherss.xyz/api/ai/image-edit`, {
+            method: 'POST',
+            body: form
+        });
+        const data = await response.json();
+        
+        if (data.status === false) {
+            return res.json({
+                status: false,
+                creator: `${creator}`,
+                message: data.message || "Layanan AI tidak tersedia saat ini"
+            });
+        }
+        
+        if (!data.result) return res.json(loghandler.error)
+        limitapikey(req.query.apikey)
+        res.json({
+            status: true,
+            creator: `${creator}`,
+            result: data.result
+        })
+    } catch (e) {
+        console.error(e);
+        res.json({
+            status: false,
+            creator: `${creator}`,
+            message: "Terjadi kesalahan saat mengakses layanan AI"
+        })
+    }
 })
 
 module.exports = router
