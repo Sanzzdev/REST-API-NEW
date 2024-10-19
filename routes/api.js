@@ -24,7 +24,7 @@ const dataweb = require('../model/DataWeb');
 const router = express.Router()
 const fetch = require('node-fetch')
 const FormData = require('form-data')
-const { aiChat, aiImage, fallbackResponse } = require('../lib/ai');
+const { aiChat, aiBardImage, aiBingImage, aiDalle, aiToAnime, aiBing, aiBard, aiSimi, gpt4, aiBlackbox, fallbackResponse } = require('../lib/ai');
 
 //―――――――――――――――――――――――――――――――――――――――――― ┏  Function ┓ ―――――――――――――――――――――――――――――――――――――――――― \\
 
@@ -762,7 +762,7 @@ router.get('/api/photooxy/sweet-candy', cekKey, async (req, res, next) => {
 })
 })
 
-//―――――――――――――――――――――――――――――――――――――――――― ┏  Sound Of Text  ┓ ―――――――――――――――――――――――――――――――――――――――――― \\
+//―――――――――――――――――――――――――――――――――――――――――― ┏  Sound Of Text  ┓ ――――――――――――――――――――――――――���――――――――――――――― \\
 
 
 
@@ -1151,7 +1151,6 @@ router.get('/api/maker/blur', cekKey, async (req, res) => {
 	limitapikey(req.query.apikey)
 	res.set({'Content-Type': 'image/png'})
 	res.send(hasil)
-  
 })
 
 
@@ -1708,7 +1707,7 @@ router.get('/api/info/emoji', cekKey, async (req, res, next) => {
 })
 
 
-//―――――――――――――――――――――――――――――――――――――――――― ┏  Tools ┓ ――――――――――――――――――――――――――――――――――――――――― \\
+//―――――――――――――――――――――――――――――――――――――――――― ┏  Tools ┓ ―――――――――――――――――――――――――――――――――――――――――― \\
 
 router.get('/api/tools/ebase64', cekKey, async (req, res, next) => {
 	var text1 = req.query.text
@@ -1882,78 +1881,220 @@ router.get('/api/ai/chat', cekKey, async (req, res, next) => {
     }
 })
 
-router.get('/api/ai/image', cekKey, async (req, res, next) => {
+
+router.get('/api/ai/blackbox', cekKey, async (req, res, next) => {
     var text = req.query.text
     if (!text) return res.json({ status : false, creator : `${creator}`, message : "[!] masukan parameter text"})   
     
     try {
-        console.log("Received image request:", text);
-        let imageData = await aiImage(text);
-        console.log("Image data received:", imageData);
+        console.log("Received BlackBox AI request:", text);
+        let response = await aiBlackbox(text);
+        console.log("BlackBox AI response:", response);
         limitapikey(req.query.apikey)
         res.json({
             status: true,
             creator: `${creator}`,
-            result: {
-                image_url: imageData.url,
-                description: imageData.description,
-                author: imageData.author,
-                author_url: imageData.author_url
-            }
+            result: response
         })
     } catch (e) {
-        console.error("Error in /api/ai/image:", e.message);
+        console.error("Error in /api/ai/blackbox:", e.message);
         res.json({
             status: false,
             creator: `${creator}`,
-            message: "Terjadi kesalahan saat mencari gambar: " + e.message
+            message: "Terjadi kesalahan saat mengakses BlackBox AI: " + e.message
         });
     }
 })
 
-router.post('/api/ai/image-edit', cekKey, async (req, res, next) => {
-    if (!req.files) return res.json({ status : false, creator : `${creator}`, message : "[!] masukan parameter image, mask, dan prompt"})   
+router.get('/api/ai/gpt4', cekKey, async (req, res, next) => {
+    var text = req.query.text
+    if (!text) return res.json({ status : false, creator : `${creator}`, message : "[!] masukan parameter text"})   
     
-    const { image, mask } = req.files;
-    const prompt = req.body.prompt;
-
-    if (!image || !mask || !prompt) return res.json({ status : false, creator : `${creator}`, message : "[!] masukan parameter image, mask, dan prompt"})   
-
     try {
-        const form = new FormData();
-        form.append('image', image.data, image.name);
-        form.append('mask', mask.data, mask.name);
-        form.append('prompt', prompt);
-
-        const response = await fetch(`https://rest-api.aetherss.xyz/api/ai/image-edit`, {
-            method: 'POST',
-            body: form
-        });
-        const data = await response.json();
-        
-        if (data.status === false) {
-            return res.json({
-                status: false,
-                creator: `${creator}`,
-                message: data.message || "Layanan AI tidak tersedia saat ini"
-            });
-        }
-        
-        if (!data.result) return res.json(loghandler.error)
+        console.log("Received GPT4 AI request:", text);
+        let response = await gpt4(text);
+        console.log("GPT4 AI response:", response);
         limitapikey(req.query.apikey)
         res.json({
             status: true,
             creator: `${creator}`,
-            result: data.result
+            result: response
         })
     } catch (e) {
-        console.error(e);
+        console.error("Error in /api/ai/gpt4:", e.message);
         res.json({
             status: false,
             creator: `${creator}`,
-            message: "Terjadi kesalahan saat mengakses layanan AI"
-        })
+            message: "Terjadi kesalahan saat mengakses GPT4 AI: " + e.message
+        });
     }
 })
 
+router.get('/api/ai/simi', cekKey, async (req, res, next) => {
+    var text = req.query.text
+    if (!text) return res.json({ status : false, creator : `${creator}`, message : "[!] masukan parameter text"})   
+    
+    try {
+        console.log("Received SIMI AI request:", text);
+        let response = await aiSimi(text);
+        console.log("SIMI AI response:", response);
+        limitapikey(req.query.apikey)
+        res.json({
+            status: true,
+            creator: `${creator}`,
+            result: response
+        })
+    } catch (e) {
+        console.error("Error in /api/ai/simi:", e.message);
+        res.json({
+            status: false,
+            creator: `${creator}`,
+            message: "Terjadi kesalahan saat mengakses SIMI AI: " + e.message
+        });
+    }
+})
+
+router.get('/api/ai/bard', cekKey, async (req, res, next) => {
+    var text = req.query.text
+    if (!text) return res.json({ status : false, creator : `${creator}`, message : "[!] masukan parameter text"})   
+    
+    try {
+        console.log("Received BARD AI request:", text);
+        let response = await aiBard(text);
+        console.log("BARD AI response:", response);
+        limitapikey(req.query.apikey)
+        res.json({
+            status: true,
+            creator: `${creator}`,
+            result: response
+        })
+    } catch (e) {
+        console.error("Error in /api/ai/bard:", e.message);
+        res.json({
+            status: false,
+            creator: `${creator}`,
+            message: "Terjadi kesalahan saat mengakses BARD AI: " + e.message
+        });
+    }
+})
+
+router.get('/api/ai/bardimg', cekKey, async (req, res, next) => {
+    var text = req.query.text
+    if (!text) return res.json({ status : false, creator : `${creator}`, message : "[!] masukan parameter text"})   
+    
+    try {
+        console.log("Received BARD IMAGE AI request:", text);
+        let response = await aiBardImage(text);
+        console.log("BARD IMAGE AI response:", response);
+        limitapikey(req.query.apikey)
+        res.json({
+            status: true,
+            creator: `${creator}`,
+            result: response
+        })
+    } catch (e) {
+        console.error("Error in /api/ai/bardimg:", e.message);
+        res.json({
+            status: false,
+            creator: `${creator}`,
+            message: "Terjadi kesalahan saat mengakses BARD AI: " + e.message
+        });
+    }
+})
+
+router.get('/api/ai/bing', cekKey, async (req, res, next) => {
+    var text = req.query.text
+    if (!text) return res.json({ status : false, creator : `${creator}`, message : "[!] masukan parameter text"})   
+    
+    try {
+        console.log("Received BING AI request:", text);
+        let response = await aiBing(text);
+        console.log("BING AI response:", response);
+        limitapikey(req.query.apikey)
+        res.json({
+            status: true,
+            creator: `${creator}`,
+            result: response
+        })
+    } catch (e) {
+        console.error("Error in /api/ai/bing:", e.message);
+        res.json({
+            status: false,
+            creator: `${creator}`,
+            message: "Terjadi kesalahan saat mengakses BING AI: " + e.message
+        });
+    }
+})
+
+router.get('/api/ai/bingimg', cekKey, async (req, res, next) => {
+    var text = req.query.text
+    if (!text) return res.json({ status : false, creator : `${creator}`, message : "[!] masukan parameter text"})   
+    
+    try {
+        console.log("Received BING IMAGE AI request:", text);
+        let imageUrl = await aiBingImage(text);
+        console.log("BING IMAGE AI response:", imageUrl);
+        limitapikey(req.query.apikey)
+        res.json({
+            status: true,
+            creator: `${creator}`,
+            result: imageUrl
+        })
+    } catch (e) {
+        console.error("Error in /api/ai/bingimg:", e.message);
+        res.json({
+            status: false,
+            creator: `${creator}`,
+            message: "Terjadi kesalahan saat mengakses BING IMAGE AI: " + e.message
+        });
+    }
+})
+
+router.get('/api/ai/dalle', cekKey, async (req, res, next) => {
+    var text = req.query.text
+    if (!text) return res.json({ status : false, creator : `${creator}`, message : "[!] masukan parameter text"})   
+    
+    try {
+        console.log("Received DALLE AI request:", text);
+        let imageUrl = await aiDalle(text);
+        console.log("DALLE AI response:", imageUrl);
+        limitapikey(req.query.apikey)
+        res.json({
+            status: true,
+            creator: `${creator}`,
+            result: imageUrl
+        })
+    } catch (e) {
+        console.error("Error in /api/ai/dalle:", e.message);
+        res.json({
+            status: false,
+            creator: `${creator}`,
+            message: "Terjadi kesalahan saat mengakses DALLE AI: " + e.message
+        });
+    }
+})
+
+router.get('/api/ai/toanime', cekKey, async (req, res, next) => {
+    var text = req.query.text
+    if (!text) return res.json({ status : false, creator : `${creator}`, message : "[!] masukan parameter text"})   
+    
+    try {
+        console.log("Received TOANIME AI request:", text);
+        let imageUrl = await aiToAnime(text);
+        console.log("TOANIME AI response:", imageUrl);
+        limitapikey(req.query.apikey)
+        res.json({
+            status: true,
+            creator: `${creator}`,
+            result: imageUrl
+        })
+    } catch (e) {
+        console.error("Error in /api/ai/toanime:", e.message);
+        res.json({
+            status: false,
+            creator: `${creator}`,
+            message: "Terjadi kesalahan saat mengakses TOANIME AI: " + e.message
+        });
+    }
+})
 module.exports = router
