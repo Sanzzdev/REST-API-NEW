@@ -3,7 +3,7 @@ require('dotenv').config()
 //_______________________ ┏  Pengaturan Utama  ┓ _______________________\\
 
 creator = '乂AETHER乂' // Nama 
-port = 8080 // Port host
+port = 8080 // Port hostt
 LimitApikey = 99999 // Batas Apikey default
 
 //___________ ┏  Pengaturan Database MongoDB  ┓ ___________\\
